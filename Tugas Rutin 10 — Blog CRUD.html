@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="id"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Tugas Rutin 10 — Blog CRUD</title>
+<style>
+:root{--bg:#fff;--fg:#1a1a2e;--mu:#667;--cd:#f4f5fa;--bd:#dde;--ac:#e8391d;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media(prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#0b0d17;--fg:#e8e9f5;--mu:#9aa0b8;--cd:#141829;--bd:#2a2f48}}
+:root[data-theme="dark"]{--bg:#0b0d17;--fg:#e8e9f5;--mu:#9aa0b8;--cd:#141829;--bd:#2a2f48}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+body{margin:0 auto;background:var(--bg);color:var(--fg);font:16px/1.5 system-ui,sans-serif;padding:16px;max-width:720px}
+h1{font-size:22px;margin:0 0 4px}h2{font-size:17px;margin:20px 0 8px}
+.sub{color:var(--mu);font-size:14px}
+.route{font:12px monospace;background:var(--cd);border:1px solid var(--bd);border-radius:8px;padding:6px 10px;margin:10px 0;overflow-x:auto;white-space:nowrap}
+.card{background:var(--cd);border:1px solid var(--bd);border-radius:12px;padding:14px;margin:10px 0}
+button,.btn{font:inherit;font-size:14px;padding:7px 12px;border-radius:8px;border:1px solid var(--bd);background:var(--bg);color:var(--fg)}
+.pri{background:var(--ac);border-color:var(--ac);color:#fff}
+.dng{color:#d33}
+input,textarea{font:inherit;width:100%;box-sizing:border-box;padding:9px;border-radius:8px;border:1px solid var(--bd);background:var(--bg);color:var(--fg);margin:4px 0}
+.err{color:#d33;font-size:13px;display:block}
+.alert{padding:10px 12px;border-radius:8px;margin:10px 0;font-size:14px}
+.success{background:#18a05822;border:1px solid #18a058}
+.danger{background:#d3333322;border:1px solid #d33}
+.row{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px}
+pre{background:var(--cd);border:1px solid var(--bd);border-radius:8px;padding:10px;overflow-x:auto;font-size:12.5px}
+details{margin:8px 0}summary{font-weight:600;padding:8px 0}
+</style></head><body>
+<h1>📝 Tugas Rutin 10 — Blog CRUD</h1>
+<div class="sub">Demo CRUD berfungsi di browser (data di memori, hilang saat refresh). Kode Laravel ada di bawah.</div>
+<div class="route" id="route"></div>
+<div id="flash"></div>
+<div id="app"></div>
+
+<h2>💻 Kode Laravel</h2>
+<details><summary>routes/web.php</summary><pre>Route::resource('posts', PostController::class);
+Route::redirect('/', '/posts');</pre></details>
+<details><summary>PostController.php (7 method)</summary><pre>public function index() {
+    $posts = Post::latest()->paginate(6);
+    return view('posts.index', compact('posts'));
+}
+public function create() { return view('posts.create'); }
+public function store(Request $r) {
+    $v = $r->validate([
+        'title' => 'required|string|max:200',
+        'body'  => 'required|min:10',
+    ]);
+    Post::create($v);
+    return redirect()->route('posts.index')
+        ->with('success', 'Post dibuat!');
+}
+public function show(Post $post) {
+    return view('posts.show', compact('post'));
+}
+public function edit(Post $post) {
+    return view('posts.edit', compact('post'));
+}
+public function update(Request $r, Post $post) {
+    $v = $r->validate([
+        'title' => 'required|string|max:200',
+        'body'  => 'required|min:10',
+    ]);
+    $post->update($v);
+    return redirect()->route('posts.show', $post)
+        ->with('success', 'Post diperbarui!');
+}
+public function destroy(Post $post) {
+    $post->delete();
+    return redirect()->route('posts.index')
+        ->with('success', 'Post dihapus!');
+}</pre></details>
+<details><summary>Model & migration</summary><pre>class Post extends Model {
+    protected $fillable = ['title', 'body'];
+}
+// migration
+$t->id();
+$t->string('title', 200);
+$t->text('body');
+$t->timestamps();</pre></details>
+<details><summary>Blade: layout, component, form</summary><pre>{{-- layouts/app.blade.php --}}
+&lt;main&gt;
+  @if (session('success'))
+    &lt;x-alert type="success"&gt;{{ session('success') }}&lt;/x-alert&gt;
+  @endif
+  @yield('content')
+&lt;/main&gt;
+
+{{-- components/alert.blade.php --}}
+@props(['type' => 'info'])
+&lt;div class="alert alert-{{ $type }}"&gt;{{ $slot }}&lt;/div&gt;
+
+{{-- posts/create.blade.php --}}
+@extends('layouts.app')
+@section('content')
+&lt;form method="POST" action="{{ route('posts.store') }}"&gt;
+  @csrf
+  &lt;input name="title" value="{{ old('title') }}"&gt;
+  @error('title') &lt;small&gt;{{ $message }}&lt;/small&gt; @enderror
+  &lt;textarea name="body"&gt;{{ old('body') }}&lt;/textarea&gt;
+  @error('body') &lt;small&gt;{{ $message }}&lt;/small&gt; @enderror
+  &lt;button&gt;Simpan&lt;/button&gt;
+&lt;/form&gt;
+@endsection
+
+{{-- hapus --}}
+&lt;form method="POST" action="{{ route('posts.destroy', $post) }}"&gt;
+  @csrf @method('DELETE')
+  &lt;button&gt;Hapus&lt;/button&gt;
+&lt;/form&gt;</pre></details>
+
+<script>
+const esc=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+let posts=[],nid=1;
+const seed=['Belajar MVC','Routing di Laravel','Blade Components','Validasi Form','Eloquent ORM','Migrations','Route Model Binding','Middleware & Auth'];
+seed.forEach(t=>posts.push({id:nid++,title:t,body:'Catatan belajar tentang '+t+' dalam framework Laravel.',at:new Date(Date.now()-nid*86400000)}));
+let page=1,view='index',cur=null,errs={},old={},flash=null;
+const PER=6;
+const alertC=(t,m)=>`<div class="alert ${t}">${m}</div>`;
+function setRoute(r){document.getElementById('route').textContent=r}
+function card(p){return `<div class="card"><b>${esc(p.title)}</b><div class="sub">${p.at.toLocaleDateString('id-ID')}</div><p>${esc(p.body.slice(0,80))}${p.body.length>80?'…':''}</p><div class="row"><button onclick="show(${p.id})">Lihat</button><button onclick="edit(${p.id})">Edit</button><button class="dng" onclick="del(${p.id})">🗑 Hapus</button></div></div>`}
+function render(){
+ document.getElementById('flash').innerHTML=flash?alertC('success',esc(flash)):'';flash=null;
+ const a=document.getElementById('app');
+ if(view==='index'){
+  setRoute('GET /posts → posts.index → PostController@index');
+  const sorted=[...posts].sort((x,y)=>y.id-x.id),pages=Math.max(1,Math.ceil(sorted.length/PER));
+  if(page>pages)page=pages;
+  a.innerHTML=`<div class="row"><button class="pri" onclick="create()">+ Post Baru</button></div>`+(sorted.slice((page-1)*PER,page*PER).map(card).join('')||'<div class="card">Belum ada post.</div>')+
+   `<div class="row" style="justify-content:center;align-items:center"><button ${page<=1?'disabled':''} onclick="page--;render()">‹</button><span>Hal ${page}/${pages} · ${posts.length} post</span><button ${page>=pages?'disabled':''} onclick="page++;render()">›</button></div>`;
+ } else if(view==='show'){
+  setRoute(`GET /posts/${cur.id} → posts.show (Route Model Binding)`);
+  a.innerHTML=`<div class="card"><h2 style="margin-top:0">${esc(cur.title)}</h2><p>${esc(cur.body)}</p><div class="row"><button onclick="edit(${cur.id})">Edit</button><button onclick="go()">‹ Kembali</button></div></div>`;
+ } else {
+  const isE=view==='edit';
+  setRoute(isE?`GET /posts/${cur.id}/edit → posts.edit`:'GET /posts/create → posts.create');
+  const t=old.title??(isE?cur.title:''),b=old.body??(isE?cur.body:'');
+  a.innerHTML=`<div class="card">${Object.keys(errs).length?alertC('danger','Periksa kembali form!'):''}
+  <label>Judul</label><input id="t" value="${esc(t)}">${errs.title?`<span class="err">${errs.title}</span>`:''}
+  <label>Isi</label><textarea id="b" rows="5">${esc(b)}</textarea>${errs.body?`<span class="err">${errs.body}</span>`:''}
+  <div class="row"><button class="pri" onclick="save()">Simpan</button><button onclick="go()">Batal</button></div>
+  <div class="sub">@csrf ${isE?"@method('PUT')":''} · ${isE?'PUT':'POST'} /posts${isE?'/'+cur.id:''}</div></div>`;
+ }
+}
+function go(){view='index';errs={};old={};render()}
+function create(){view='create';cur=null;errs={};old={};render()}
+function show(id){cur=posts.find(p=>p.id===id);view='show';render()}
+function edit(id){cur=posts.find(p=>p.id===id);view='edit';errs={};old={};render()}
+function del(id){if(!confirm('Hapus?'))return;posts=posts.filter(p=>p.id!==id);flash='Post dihapus!';view='index';render()}
+function save(){
+ const t=document.getElementById('t').value.trim(),b=document.getElementById('b').value.trim();
+ errs={};old={title:t,body:b};
+ if(!t)errs.title='The title field is required.';else if(t.length>200)errs.title='The title must not be greater than 200 characters.';
+ if(!b)errs.body='The body field is required.';else if(b.length<10)errs.body='The body must be at least 10 characters.';
+ if(Object.keys(errs).length){render();return}
+ if(view==='edit'){Object.assign(cur,{title:t,body:b});flash='Post diperbarui!';old={};view='show'}
+ else{posts.push({id:nid++,title:t,body:b,at:new Date()});flash='Post dibuat!';old={};view='index';page=1}
+ render();
+}
+render();
+</script>
+</body></html>
